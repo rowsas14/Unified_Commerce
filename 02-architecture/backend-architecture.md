@@ -2,7 +2,7 @@
 title: Backend Architecture
 folder: 02-architecture
 status: production-ready
-last_reviewed: 2026-04-30
+last_reviewed: 2026-05-04
 tags:
   - backend
   - clean-architecture
@@ -35,11 +35,14 @@ It is based on the uploaded backend architecture source and adapted to the produ
 
 The uploaded backend architecture shows API, Application, Domain and Infrastructure responsibilities.
 
-For production documentation, treat these as separate projects/layers, not nested inside the API project.
+For production documentation, treat these as **separate projects/layers**, not nested inside the API project.
+
+**Naming in this repository:** the Web API project folder is **`POS.API`** (`.NET` convention: all-caps **API**). The solution file is **`POSSystem.sln`**. Projects live **directly under the backend solution root** (there is no required `src/` parent folder).
 
 ```text
-src/
-├── POS.Api/
+Pos-BackEnd/   (example repo root)
+├── POSSystem.sln
+├── POS.API/
 ├── POS.Application/
 ├── POS.Domain/
 └── POS.Infrastructure/
@@ -49,27 +52,47 @@ src/
 
 ```mermaid
 flowchart LR
-    Api[POS.Api] --> Application[POS.Application]
+    Api[POS.API] --> Application[POS.Application]
     Application --> Domain[POS.Domain]
     Application --> Infrastructure[POS.Infrastructure]
     Infrastructure --> Database[(PostgreSQL)]
     Infrastructure --> External[External Services]
 ```
 
-## POS.Api responsibility
+## Implementation alignment (Pixa POSSystem)
+
+The **Pixa** backend under `Pos-BackEnd` follows the same Clean Architecture layers and dependency rules as this document. Concrete mapping:
+
+| Document example | Repository actual |
+|------------------|-------------------|
+| `POS.Api` | **`POS.API`** (folder + project name) |
+| Optional `src/` wrapper | **Not used** here — projects sit next to `POSSystem.sln` |
+| API → Application → Domain | **API** references **Application** + **Infrastructure** only; **Application** references **Domain**; **Infrastructure** references **Application** + **Domain** (API has **no** direct Domain reference) |
+
+**Application `Modules/`** in the repo today include: **Auth**, **Customers** (auth + customer use cases), **IdentityAccess** (staff users and staff auth), **PlatformAdministration** and **PlatformUsers** (platform operator admin vs login), **Products**, **Orders**, **Payments**, **Inventory** (some areas are still thin stubs while HTTP endpoints exist).
+
+**API `Modules/`** include **Auth**, **Token**, **CustomerAuth**, **PlatformUsers**, **PlatformAdministration**, **IdentityAccess**, **Products**, **Orders**, **Payments**, **Customers**, and room for more per the module expansion list below.
+
+## POS.API responsibility
 
 The API project owns HTTP concerns.
 
 It may contain:
 
 ```text
-POS.Api/
+POS.API/
 ├── Modules/
 │   ├── Auth/
+│   ├── Token/
+│   ├── CustomerAuth/
+│   ├── PlatformUsers/
+│   ├── PlatformAdministration/
+│   ├── IdentityAccess/
 │   ├── Products/
 │   ├── Orders/
 │   ├── Payments/
-│   └── Customers/
+│   ├── Customers/
+│   └── …
 ├── Middlewares/
 ├── Filters/
 └── Extensions/
@@ -116,12 +139,15 @@ POS.Application/
 │   │   └── Interfaces/
 │   ├── Payments/
 │   ├── Customers/
+│   │   └── Dtos/          ← multiple *.cs when many contracts exist
 │   ├── Inventory/
 │   └── Auth/
 └── Common/
     ├── Interfaces/
     └── Responses/
 ```
+
+**DTO file convention:** Prefer **one public DTO type per file**. Name the file after the type (`StaffLoginResult.cs`, `CreatePlatformUserRequest.cs`). Use a module-level **`Dtos/`** folder when a module defines several requests/responses/results (instead of bundling many types into one `*Dtos.cs`). **`Constants/`** may live beside **`Dtos/`** where values are shared across that module’s application code.
 
 ## Application service rules
 

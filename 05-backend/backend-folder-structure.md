@@ -2,6 +2,7 @@
 title: Backend Folder Structure
 folder: 05-backend
 status: production-ready
+last_reviewed: 2026-05-04
 source_scope: Unified_Commerce_Scope_V1.docx
 source_database: Unified_Commerce_Database_Design_final V2.docx
 source_backend_architecture: Back end Architecture final.txt
@@ -21,24 +22,31 @@ The final backend structure must keep that idea while avoiding layer nesting mis
 
 ## Correct top-level solution structure
 
+**Naming:** the Web API project is **`POS.API`** (all-caps **API**), not `POS.Api`.
+
+**Layout:** an optional `src/` parent folder is fine for greenfield repos. The **Pixa** backend places projects **directly next to the solution** (no `src/`):
+
 ```text
-src/
-├── POS.Api/
+Pos-BackEnd/                    # example repo root
+├── POSSystem.sln
+├── POS.API/
 ├── POS.Application/
 ├── POS.Domain/
 ├── POS.Infrastructure/
-└── POS.Tests/                  # optional test project structure when tests are added
+└── POS.Tests/                  # optional, when tests are added
 ```
 
-## POS.Api structure
+## POS.API structure
 
 ```text
-POS.Api/
+POS.API/
 ├── Modules/
 │   ├── Auth/
-│   │   ├── Controllers/
-│   │   ├── Requests/
-│   │   └── Responses/
+│   ├── Token/
+│   ├── CustomerAuth/
+│   ├── PlatformUsers/
+│   ├── PlatformAdministration/
+│   ├── IdentityAccess/
 │   ├── Products/
 │   ├── Orders/
 │   ├── Payments/
@@ -57,13 +65,15 @@ POS.Api/
 └── Program.cs
 ```
 
+The list combines **Unified Commerce** target modules with folders present in the **Pixa** codebase today (`Token`, `CustomerAuth`, `PlatformUsers`, `PlatformAdministration`, `IdentityAccess`, etc.). Not every folder exists in every phase.
+
 ## API module contents
 
 | Folder | Purpose |
 |---|---|
 | `Controllers/` | Thin HTTP controllers that call application services. |
-| `Requests/` | HTTP request models, not domain entities. |
-| `Responses/` | HTTP response models or API response wrappers. |
+| `Requests/` | HTTP request models, not domain entities. Prefer **one request type per file** when many contracts exist (file name matches type name). |
+| `Responses/` | HTTP response models or API response wrappers. Same **one type per file** preference as requests when the module grows. |
 | `Middlewares/` | Exception handling, auth/tenant context, request pipeline concerns. |
 | `Filters/` | Optional API-level filters. |
 | `Extensions/` | Service registration and pipeline extension methods. |
@@ -75,20 +85,24 @@ POS.Application/
 ├── Modules/
 │   ├── Products/
 │   │   ├── ProductService.cs
-│   │   ├── ProductDto.cs
 │   │   ├── ProductValidator.cs
+│   │   ├── ProductDto.cs              # single DTO ok here
 │   │   └── Interfaces/
 │   ├── Orders/
 │   │   ├── OrderService.cs
-│   │   ├── OrderDto.cs
 │   │   ├── OrderValidator.cs
+│   │   ├── Dtos/                      # preferred when multiple request/response types
 │   │   ├── Strategies/
 │   │   ├── Factories/
 │   │   └── Interfaces/
 │   ├── Payments/
 │   ├── Customers/
+│   │   └── Dtos/
 │   ├── Inventory/
 │   ├── Auth/
+│   ├── IdentityAccess/
+│   ├── PlatformAdministration/
+│   ├── PlatformUsers/
 │   ├── SalesPos/
 │   ├── DiscountsPromotions/
 │   ├── ReturnsExchanges/
@@ -108,7 +122,9 @@ POS.Application/
 | Item | Rule |
 |---|---|
 | `*Service.cs` | Orchestrates one feature/use case family. |
-| `*Dto.cs` | Application-facing data transfer model. |
+| `Dtos/` | **Preferred** when a module has several requests/responses/results. **One public type per `.cs` file**; file name matches the type (`CustomerLoginResult.cs`, `CreateStaffUserRequest.cs`). Avoid bundling many types in one `*Dtos.cs` file. |
+| `*Dto.cs` | Acceptable when there is only **one** application DTO in that module; move to `Dtos/` when adding more. |
+| `Constants/` | Optional module-level constants (status codes, provider keys, etc.), typically beside `Dtos/`. |
 | `*Validator.cs` | Validates command/request data before persistence. |
 | `Interfaces/` | Service/repository/unit-of-work/context contracts. |
 | `Strategies/` | Allowed only where behavior switching exists in source architecture, such as orders/payments. |
@@ -195,7 +211,8 @@ POS.Infrastructure/
 
 - Keep API contracts out of Domain.
 - Keep EF Core configurations out of Application and Domain.
-- Keep API request/response classes out of Application unless intentionally reused as DTOs; prefer separate DTOs when workflows need them.
+- Keep API request/response classes out of Application unless intentionally reused as DTOs; prefer separate application `Dtos/` when workflows need them.
+- Prefer **one type per file** for HTTP requests/responses and for application DTOs when a module has more than a couple of contracts.
 - Keep tenant context abstractions in Common/Application, implementation in API/Infrastructure.
 - Keep repository interfaces near Application contracts, implementation in Infrastructure.
 - Do not create CQRS folders such as `Commands`, `Queries`, `Handlers`, or `Mediators`.
@@ -207,6 +224,7 @@ POS.Infrastructure/
 - [ ] Module folder names match product/database modules.
 - [ ] API controllers are feature-grouped.
 - [ ] Application services are feature-grouped.
+- [ ] Application DTOs follow **one type per file** (and `Dtos/` when many types).
 - [ ] Domain models remain pure.
 - [ ] Infrastructure owns persistence and external systems.
 - [ ] No CQRS/Mediator folders exist.
