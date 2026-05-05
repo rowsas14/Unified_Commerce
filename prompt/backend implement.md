@@ -89,6 +89,66 @@ Do not modify unrelated modules.
 Do not change frontend code.
 Do not create database tables unless the approved schema already includes them.
 
+
+
+## Mandatory backend feature completion rule
+
+After the backend implementation for this feature is complete, you MUST read and follow:
+
+- `14-ai-ide-rules/backend-feature-completion-testing-rule.md`
+
+The feature is NOT considered complete until automated tests are added or updated in:
+
+- `Pos-BackEnd/POS.Tests/`
+
+Tests must match the changed layer:
+
+| Changed layer | Test location |
+|---|---|
+| Domain rules / invariants | `POS.Tests/Domain/` |
+| Application services | `POS.Tests/Application/` |
+| Infrastructure repositories / EF queries | `POS.Tests/Infrastructure/` |
+| API controllers / endpoints | `POS.Tests/Api/` |
+
+Requirements:
+
+1. Mirror the production module path inside `POS.Tests`.
+2. Convert the feature `feature-spec.md` QA checklist into concrete test methods.
+3. Use test naming format:
+
+   `<Method>_<Scenario>_<Expected>`
+
+   Example:
+
+   `LoginAsync_WhenPasswordWrong_ReturnsUnauthorized`
+
+4. Use approved test helpers only:
+   - `FakeUnitOfWork` for Application tests.
+   - `TestDbContextFactory` with SQLite in-memory for EF repository tests.
+   - `PosWebApplicationFactory` for API tests.
+
+5. Do not use real PostgreSQL, production secrets, or external services in automated tests unless the testing strategy explicitly allows it.
+
+6. Backend tests must verify:
+   - Tenant isolation
+   - RBAC / authorization
+   - Feature access
+   - Validation rules
+   - Not-found scenarios
+   - Status / business rule failures where applicable
+
+7. Run tests before completion:
+---
+
+   ```bash
+   dotnet test
+   
+   
+   
+   
+
+
+
 ---
 
 
